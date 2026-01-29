@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ahk-organizer",
+    "name": "AHK Organizer",
+    "description": "Manage and edit AutoHotkey scripts with ease.",
+    "url": "http://localhost:3000",
+    "startCommand": "node server/index.js",
+    "cwd": "../AHKOrganizer",
+    "color": "#3498db"
+  },
+  {
+    "id": "warframe-shit",
+    "name": "Warframe Collections",
+    "description": "Track your Warframe items and mastery progress.",
+    "url": "http://localhost:5173",
+    "startCommand": "npm run dev",
+    "cwd": "../WarframeShit",
+    "color": "#e74c3c"
+  }
+]

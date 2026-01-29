@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AHK Organizer</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Fix for Monaco/Socket.io AMD conflict -->
+    <script>
+        // Store Monaco's define if it exists, or handle its arrival
+        window._define = window.define;
+        window.define = undefined; 
+    </script>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <script>
+        // Restore define for Monaco
+        window.define = window._define;
+    </script>
+
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+    <script src="http://localhost:8080/static/nav.js"></script>
+</head>
+
+<body class="dark-theme">
+    <div id="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-microchip"></i> AHK Organizer</h2>
+                <div class="sidebar-actions">
+                    <button id="add-script-btn" title="Add New Script"><i class="fas fa-plus"></i></button>
+                    <button id="settings-btn" title="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+            </div>
+            <div id="script-list" class="script-list">
+                <div class="loading">Loading scripts...</div>
+            </div>
+        </aside>
+
+        <main class="editor-area">
+            <header class="editor-header">
+                <div id="active-script-name" class="active-filename">Select a script</div>
+                <div class="editor-actions">
+                    <button id="run-btn" disabled title="Run Script"><i class="fas fa-play"></i> Run</button>
+                    <button id="stop-btn" disabled title="Stop Script"><i class="fas fa-stop"></i> Stop</button>
+                    <button id="restart-btn" disabled title="Restart Script"><i class="fas fa-sync"></i>
+                        Restart</button>
+                    <button id="save-btn" disabled title="Save Changes (Ctrl+S)"><i class="fas fa-save"></i>
+                        Apply</button>
+                    <button id="external-edit-btn" disabled title="Edit in External Editor"><i
+                            class="fas fa-external-link-alt"></i></button>
+                </div>
+            </header>
+            <div id="monaco-container"></div>
+        </main>
+    </div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fas fa-cog"></i> Settings</h3>
+                <span id="close-settings" class="close">&times;</span>
+            </header>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <label for="ahk-path">AutoHotkey Executable Path:</label>
+                    <div class="path-input-group">
+                        <input type="text" id="ahk-path" placeholder="e.g. C:\Program Files\AutoHotkey\AutoHotkey.exe">
+                        <label for="file-picker" class="file-picker-btn">
+                            <i class="fas fa-folder-open"></i> Browse
+                            <input type="file" id="file-picker" style="display:none" accept=".exe">
+                        </label>
+                    </div>
+                    <small>Specify the full path to AutoHotkey.exe</small>
+                </div>
+                <div class="settings-actions">
+                    <button id="save-settings-btn" class="btn-primary">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="new-script-modal" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h3><i class="fas fa-plus"></i> New Script</h3>
+                <span id="close-new-script" class="close">&times;</span>
+            </header>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <label for="new-script-name">Script Name:</label>
+                    <input type="text" id="new-script-name" placeholder="myscript.ahk">
+                </div>
+                <div class="settings-group">
+                    <label for="new-script-version">AHK Version:</label>
+                    <select id="new-script-version">
+                        <option value="V1.1">AutoHotkey V1.1 (Standard)</option>
+                        <option value="V2">AutoHotkey V2 (Modern)</option>
+                    </select>
+                </div>
+                <div class="settings-actions">
+                    <button id="create-script-btn" class="btn-primary">Create Script</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
