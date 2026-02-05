@@ -65,6 +65,7 @@ const settingsBtn = document.getElementById('settings-btn');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettings = document.getElementById('close-settings');
 const ahkPathInput = document.getElementById('ahk-path');
+const ahkPathV2Input = document.getElementById('ahk-path-v2');
 const saveSettingsBtn = document.getElementById('save-settings-btn');
 const filePicker = document.getElementById('file-picker');
 const newScriptModal = document.getElementById('new-script-modal');
@@ -104,7 +105,8 @@ function initSocketEvents() {
     });
 
     socket.on('config_data', (config) => {
-        ahkPathInput.value = config.ahkPath;
+        ahkPathInput.value = config.ahkPath || '';
+        ahkPathV2Input.value = config.ahkPathV2 || '';
     });
 
     socket.on('config_saved', () => {
@@ -122,6 +124,7 @@ function renderScriptList() {
             <div class="script-name">${script.name}</div>
             <div class="script-version-badge">${script.version || 'V1.1'}</div>
             <div class="script-item-actions">
+                <i class="fas fa-edit rename-btn" title="Rename Script"></i>
                 <i class="fas fa-trash delete-btn" title="Delete Script"></i>
             </div>
         `;
@@ -130,6 +133,8 @@ function renderScriptList() {
         item.onclick = (e) => {
             if (e.target.classList.contains('delete-btn')) {
                 deleteScript(script.name);
+            } else if (e.target.classList.contains('rename-btn')) {
+                renameScript(script.name);
             } else {
                 selectScript(script.name);
             }
@@ -212,9 +217,23 @@ function deleteScript(fileName) {
         socket.emit('delete_script', fileName);
         if (selectedScript === fileName) {
             selectedScript = null;
-            editor.setValue('');
+            if (editor) editor.setValue('');
             activeScriptName.textContent = 'Select a script';
             updateButtonStates();
+        }
+    }
+}
+
+function renameScript(oldName) {
+    const newName = prompt(`Enter new name for "${oldName}":`, oldName);
+    if (newName && newName !== oldName) {
+        if (!newName.endsWith('.ahk')) {
+            return alert('Filename must end with .ahk');
+        }
+        socket.emit('rename_script', { oldName, newName });
+        if (selectedScript === oldName) {
+            selectedScript = newName;
+            activeScriptName.textContent = newName;
         }
     }
 }
@@ -239,7 +258,8 @@ window.onclick = (event) => {
 
 saveSettingsBtn.onclick = () => {
     const path = ahkPathInput.value.trim();
-    socket.emit('update_config', { ahkPath: path });
+    const pathV2 = ahkPathV2Input.value.trim();
+    socket.emit('update_config', { ahkPath: path, ahkPathV2: pathV2 });
 };
 
 filePicker.onchange = (e) => {

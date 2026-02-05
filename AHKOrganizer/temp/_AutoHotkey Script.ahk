@@ -16,7 +16,6 @@ FileAppend, AHK_LINE_INFO:AutoHotkey Script.ahk:9`n, *
 } else {
 FileAppend, AHK_LINE_INFO:AutoHotkey Script.ahk:10`n, *
     SetTimer, DoAction, Off
-FileAppend, AHK_LINE_INFO:AutoHotkey Script.ahk:11`n, *
 }
 FileAppend, AHK_LINE_INFO:AutoHotkey Script.ahk:12`n, *
 return

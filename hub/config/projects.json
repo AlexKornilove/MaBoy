@@ -16,5 +16,15 @@
     "startCommand": "npm run dev",
     "cwd": "../WarframeShit",
     "color": "#e74c3c"
+  },
+  {
+    "id": "schedule-bot",
+    "name": "NSPU Schedule Bot",
+    "description": "Telegram-бот расписания НГПУ",
+    "url": "telegram-bot",
+    "startCommand": "node src/index.js",
+    "cwd": "../ScheduleBot",
+    "color": "#27ae60",
+    "type": "bot"
   }
 ]

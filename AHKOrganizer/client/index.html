@@ -68,7 +68,7 @@
             </header>
             <div class="modal-body">
                 <div class="settings-group">
-                    <label for="ahk-path">AutoHotkey Executable Path:</label>
+                    <label for="ahk-path">AutoHotkey V1.1 Executable Path:</label>
                     <div class="path-input-group">
                         <input type="text" id="ahk-path" placeholder="e.g. C:\Program Files\AutoHotkey\AutoHotkey.exe">
                         <label for="file-picker" class="file-picker-btn">
@@ -76,7 +76,14 @@
                             <input type="file" id="file-picker" style="display:none" accept=".exe">
                         </label>
                     </div>
-                    <small>Specify the full path to AutoHotkey.exe</small>
+                    <small>Specify the full path to AutoHotkey V1.1 executable</small>
+                </div>
+                <div class="settings-group">
+                    <label for="ahk-path-v2">AutoHotkey V2 Executable Path:</label>
+                    <div class="path-input-group">
+                        <input type="text" id="ahk-path-v2" placeholder="e.g. C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe">
+                    </div>
+                    <small>Leave empty to use V1 path for all scripts</small>
                 </div>
                 <div class="settings-actions">
                     <button id="save-settings-btn" class="btn-primary">Save Settings</button>

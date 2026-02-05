@@ -22,8 +22,27 @@ app.use(express.json());
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 let config = {
-    ahkPath: 'AutoHotkey.exe'
+    ahkPath: 'AutoHotkey.exe',
+    ahkPathV2: ''
 };
+
+// Detect AHK version from script content
+function detectAhkVersion(content) {
+    // Check for #Requires directive (modern V2 standard)
+    const requiresMatch = content.match(/#Requires\s+AutoHotkey\s+v?(\d+)/i);
+    if (requiresMatch && requiresMatch[1] === '2') {
+        return 'V2';
+    }
+
+    // Check for ; @version comment (legacy format)
+    const versionComment = content.match(/;\s*@version\s+(V?\d+(?:\.\d+)?)/i);
+    if (versionComment) {
+        return versionComment[1].toUpperCase().startsWith('V2') ? 'V2' : 'V1.1';
+    }
+
+    // Default to V1.1
+    return 'V1.1';
+}
 
 function loadConfig() {
     if (fs.existsSync(CONFIG_PATH)) {
@@ -47,10 +66,7 @@ let runningScripts = new Map(); // fileName -> process
 function instrumentScript(fileName, content) {
     const lines = content.split('\n');
     let inBlockComment = false;
-
-    // Check if it's V2
-    const versionMatch = content.match(/; @version\s+(V\d+(?:\.\d+)?)/i);
-    const isV2 = versionMatch && versionMatch[1].toUpperCase().startsWith('V2');
+    const isV2 = detectAhkVersion(content) === 'V2';
 
     const instrumentedLines = lines.map((line, index) => {
         const lineNumber = index + 1;
@@ -62,8 +78,19 @@ function instrumentScript(fileName, content) {
             return line;
         }
 
-        // Don't instrument empty lines, comments, or directives
+        // Directives, comments, empty lines - don't instrument
         if (!trimmed || trimmed.startsWith(';') || trimmed.startsWith('#')) {
+            return line;
+        }
+
+        // Hotkeys, labels, braces - don't instrument
+        if (trimmed.endsWith('::') || trimmed.endsWith(':') || trimmed === '{' || trimmed === '}') {
+            return line;
+        }
+
+        // Control flow keywords (to avoid breaking one-line blocks or logic flow)
+        const flowWords = ['if', 'else', 'loop', 'while', 'for', 'try', 'catch', 'finally', 'switch', 'case', 'default'];
+        if (flowWords.some(w => trimmed.toLowerCase().startsWith(w))) {
             return line;
         }
 
@@ -87,8 +114,7 @@ function getScripts() {
         .map(f => {
             const filePath = path.join(SCRIPTS_DIR, f);
             const content = fs.readFileSync(filePath, 'utf8');
-            const versionMatch = content.match(/; @version\s+(V\d+(?:\.\d+)?)/i);
-            const version = versionMatch ? versionMatch[1].toUpperCase() : 'V1.1';
+            const version = detectAhkVersion(content);
 
             return {
                 name: f,
@@ -116,21 +142,29 @@ io.on('connection', (socket) => {
         const instrumentedContent = instrumentScript(fileName, content);
         const tempPath = path.join(TEMP_DIR, `_${fileName}`);
 
-        fs.writeFileSync(tempPath, instrumentedContent);
+        // Write with UTF-8 BOM to ensure AHK V2 correctly reads the file (especially for Cyrillic characters)
+        fs.writeFileSync(tempPath, '\ufeff' + instrumentedContent, 'utf8');
 
         // Run AHK script with /ErrorStdOut to capture FileAppend to stdout
-        // Check for AutoHotkey in config, PATH or common locations
-        let ahkPath = config.ahkPath || 'AutoHotkey.exe';
-        const commonPaths = [
-            'C:\\Program Files\\AutoHotkey\\AutoHotkey.exe',
-            'C:\\Program Files (x86)\\AutoHotkey\\AutoHotkey.exe'
-        ];
+        // Select correct executable based on script version
+        const scriptVersion = detectAhkVersion(content);
+        let ahkPath;
 
-        if (ahkPath === 'AutoHotkey.exe') { // Only search if default
-            for (const p of commonPaths) {
-                if (fs.existsSync(p)) {
-                    ahkPath = p;
-                    break;
+        if (scriptVersion === 'V2' && config.ahkPathV2) {
+            ahkPath = config.ahkPathV2;
+        } else {
+            ahkPath = config.ahkPath || 'AutoHotkey.exe';
+            const commonPaths = [
+                'C:\\Program Files\\AutoHotkey\\AutoHotkey.exe',
+                'C:\\Program Files (x86)\\AutoHotkey\\AutoHotkey.exe'
+            ];
+
+            if (ahkPath === 'AutoHotkey.exe') { // Only search if default
+                for (const p of commonPaths) {
+                    if (fs.existsSync(p)) {
+                        ahkPath = p;
+                        break;
+                    }
                 }
             }
         }
@@ -223,6 +257,31 @@ io.on('connection', (socket) => {
             }
             fs.unlinkSync(filePath);
             console.log(`Deleted script: ${fileName}`);
+        }
+    });
+
+    socket.on('rename_script', ({ oldName, newName }) => {
+        const oldPath = path.join(SCRIPTS_DIR, oldName);
+        const newPath = path.join(SCRIPTS_DIR, newName);
+
+        if (fs.existsSync(oldPath) && !fs.existsSync(newPath)) {
+            // Stop if running
+            const child = runningScripts.get(oldName);
+            if (child) {
+                child.kill();
+                runningScripts.delete(oldName);
+            }
+
+            try {
+                fs.renameSync(oldPath, newPath);
+                console.log(`Renamed script from ${oldName} to ${newName}`);
+                io.emit('scripts_changed', getScripts());
+            } catch (err) {
+                console.error(`Error renaming script: ${err.message}`);
+                socket.emit('error_message', `Rename failed: ${err.message}`);
+            }
+        } else if (fs.existsSync(newPath)) {
+            socket.emit('error_message', `A script named "${newName}" already exists.`);
         }
     });
 });
