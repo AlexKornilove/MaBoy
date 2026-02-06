@@ -19,6 +19,14 @@ else
     fi
 fi
 
+# Cleanup port 3000 if blocked
+echo "Checking port 3000..."
+if command -v fuser >/dev/null 2>&1; then
+    fuser -k 3000/tcp >/dev/null 2>&1
+elif command -v lsof >/dev/null 2>&1; then
+    lsof -ti:3000 | xargs kill -9 >/dev/null 2>&1
+fi
+
 # Run the server
 echo "Starting AHK Organizer server..."
 node server/index.js

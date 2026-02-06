@@ -88,12 +88,12 @@ function stopProject(projectId) {
         if (process.platform === 'win32') {
             spawn('taskkill', ['/pid', child.pid, '/f', '/t']);
         } else {
-            // On Linux, use process group ID to kill the entire tree
+            // On Linux, use process group ID with SIGKILL to forcefully kill the entire tree
             try {
-                process.kill(-child.pid, 'SIGTERM');
+                process.kill(-child.pid, 'SIGKILL');
             } catch (e) {
-                // If group kill fails, try regular kill
-                child.kill();
+                // Fallback to regular kill if group kill fails
+                child.kill('SIGKILL');
             }
         }
     });
@@ -154,9 +154,9 @@ process.on('SIGINT', () => {
             spawn('taskkill', ['/pid', proc.pid, '/f', '/t']);
         } else {
             try {
-                process.kill(-proc.pid, 'SIGTERM');
+                process.kill(-proc.pid, 'SIGKILL');
             } catch (e) {
-                proc.kill();
+                proc.kill('SIGKILL');
             }
         }
     }

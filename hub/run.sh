@@ -20,6 +20,16 @@ else
     fi
 fi
 
+# Cleanup potentially blocked ports (AHK: 3000, Warframe: 3001/5173, Hub: 8080)
+echo "Cleaning up ports (3000, 3001, 5173, 8080)..."
+for port in 3000 3001 5173 8080; do
+    if command -v fuser >/dev/null 2>&1; then
+        fuser -k $port/tcp >/dev/null 2>&1
+    elif command -v lsof >/dev/null 2>&1; then
+        lsof -ti:$port | xargs kill -9 >/dev/null 2>&1
+    fi
+done
+
 # Run the server
 echo "Starting Hub server..."
 node server.js

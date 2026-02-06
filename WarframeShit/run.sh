@@ -19,6 +19,16 @@ else
     fi
 fi
 
+# Cleanup ports 3001 and 5173 if blocked
+echo "Checking ports 3001 and 5173..."
+for port in 3001 5173; do
+    if command -v fuser >/dev/null 2>&1; then
+        fuser -k $port/tcp >/dev/null 2>&1
+    elif command -v lsof >/dev/null 2>&1; then
+        lsof -ti:$port | xargs kill -9 >/dev/null 2>&1
+    fi
+done
+
 # Run the dev server
 echo "Starting Warframe Collections dev server..."
 npm run dev
