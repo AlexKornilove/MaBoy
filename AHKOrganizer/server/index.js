@@ -22,7 +22,7 @@ app.use(express.json());
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 let config = {
-    ahkPath: 'AutoHotkey.exe',
+    ahkPath: process.platform === 'win32' ? 'AutoHotkey.exe' : '',
     ahkPathV2: ''
 };
 
@@ -137,6 +137,10 @@ io.on('connection', (socket) => {
     socket.on('run_script', (fileName) => {
         if (runningScripts.has(fileName)) return;
 
+        if (process.platform !== 'win32') {
+            return socket.emit('error_message', 'Running AutoHotkey scripts is only supported on Windows.');
+        }
+
         const filePath = path.join(SCRIPTS_DIR, fileName);
         const content = fs.readFileSync(filePath, 'utf8');
         const instrumentedContent = instrumentScript(fileName, content);
@@ -156,7 +160,8 @@ io.on('connection', (socket) => {
             ahkPath = config.ahkPath || 'AutoHotkey.exe';
             const commonPaths = [
                 'C:\\Program Files\\AutoHotkey\\AutoHotkey.exe',
-                'C:\\Program Files (x86)\\AutoHotkey\\AutoHotkey.exe'
+                'C:\\Program Files (x86)\\AutoHotkey\\AutoHotkey.exe',
+                'C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe'
             ];
 
             if (ahkPath === 'AutoHotkey.exe') { // Only search if default

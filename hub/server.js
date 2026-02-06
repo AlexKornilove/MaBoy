@@ -49,7 +49,8 @@ function launchProject(project) {
     const child = spawn(project.startCommand, [], {
         cwd: path.resolve(__dirname, project.cwd),
         shell: true,
-        stdio: 'inherit'
+        stdio: 'inherit',
+        detached: process.platform !== 'win32' // Use process groups on Linux
     });
 
     child.on('error', (err) => {
@@ -87,7 +88,13 @@ function stopProject(projectId) {
         if (process.platform === 'win32') {
             spawn('taskkill', ['/pid', child.pid, '/f', '/t']);
         } else {
-            child.kill();
+            // On Linux, use process group ID to kill the entire tree
+            try {
+                process.kill(-child.pid, 'SIGTERM');
+            } catch (e) {
+                // If group kill fails, try regular kill
+                child.kill();
+            }
         }
     });
 }
@@ -146,10 +153,14 @@ process.on('SIGINT', () => {
         if (process.platform === 'win32') {
             spawn('taskkill', ['/pid', proc.pid, '/f', '/t']);
         } else {
-            proc.kill();
+            try {
+                process.kill(-proc.pid, 'SIGTERM');
+            } catch (e) {
+                proc.kill();
+            }
         }
     }
-    setTimeout(() => process.exit(), 500); // Allow time for taskkill
+    setTimeout(() => process.exit(), 500); // Allow time for cleanup
 });
 
 // Auto-launch all projects
