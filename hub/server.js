@@ -44,10 +44,26 @@ function launchProject(project) {
         return;
     }
 
-    console.log(`[Hub] Starting ${project.name} in ${project.cwd}...`);
+    const projectDir = path.resolve(__dirname, project.cwd);
+    let command = project.startCommand;
 
-    const child = spawn(project.startCommand, [], {
-        cwd: path.resolve(__dirname, project.cwd),
+    // Check for platform-specific run scripts
+    if (process.platform === 'win32') {
+        const batScript = path.join(projectDir, 'run.bat');
+        if (fs.existsSync(batScript)) command = 'run.bat';
+    } else {
+        const shScript = path.join(projectDir, 'run.sh');
+        if (fs.existsSync(shScript)) {
+            // Ensure the script is executable
+            try { fs.chmodSync(shScript, 0o755); } catch (e) { }
+            command = './run.sh';
+        }
+    }
+
+    console.log(`[Hub] Starting ${project.name} in ${project.cwd} using ${command}...`);
+
+    const child = spawn(command, [], {
+        cwd: projectDir,
         shell: true,
         stdio: 'inherit',
         detached: process.platform !== 'win32' // Use process groups on Linux

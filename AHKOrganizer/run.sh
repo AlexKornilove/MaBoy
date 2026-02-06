@@ -12,7 +12,7 @@ else
 
     # Test for binary compatibility (chokidar has native parts)
     if ! node -e "require('chokidar')" >/dev/null 2>&1; then
-        echo "⚠️ Error: Dependencies appear to be incompatible with Linux (native modules error)."
+        echo "⚠️ Error: Dependencies are incompatible with Linux (Native modules error)."
         echo "Performing clean reinstall of node_modules..."
         rm -rf node_modules package-lock.json
         npm install
@@ -20,11 +20,13 @@ else
 fi
 
 # Cleanup port 3000 if blocked
-echo "Checking port 3000..."
+echo "Ensuring port 3000 is free..."
 if command -v fuser >/dev/null 2>&1; then
     fuser -k 3000/tcp >/dev/null 2>&1
 elif command -v lsof >/dev/null 2>&1; then
     lsof -ti:3000 | xargs kill -9 >/dev/null 2>&1
+elif command -v ss >/dev/null 2>&1; then
+    ss -lptn "sport = :3000" | grep -oP '(?<=pid=)\d+' | xargs kill -9 >/dev/null 2>&1
 fi
 
 # Run the server
