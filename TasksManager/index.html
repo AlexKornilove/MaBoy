@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="src/css/main.css">
+    <link rel="stylesheet" href="src/css/table-controls.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="http://localhost:8080/static/nav.js"></script>
+</head>
+
+<body class="dark-theme">
+    <div id="app-container">
+        <header id="top-bar">
+            <div class="top-bar-left">
+                <button id="home-btn" title="Все задачи" class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="command-container">
+                <div class="command-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg></div>
+                <input type="text" id="command-bar" placeholder="Быстрый поиск или действие..." autocomplete="off">
+            </div>
+
+            <div class="top-bar-right">
+                <button id="add-task-btn" class="primary-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    <span>Новая задача</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="main-content">
+            <aside id="sidebar">
+                <div class="sidebar-header">
+                    <h3>КАТЕГОРИИ</h3>
+                    <button id="add-category-btn" title="Добавить категорию">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                    </button>
+                </div>
+                <nav id="categories-container" class="sidebar-nav"></nav>
+
+                <div class="sidebar-settings">
+                    <div class="settings-group">
+                        <label>Шрифт интерфейса</label>
+                        <div class="font-controls" data-setting="uiFontSize">
+                            <button data-size="small">S</button>
+                            <button data-size="medium">M</button>
+                            <button data-size="large">L</button>
+                            <button data-size="xlarge">XL</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sidebar-resizer"></div>
+            </aside>
+
+            <main id="workspace">
+                <div id="active-task-pane" class="hidden">
+                    <div id="editor-toolbar">
+                        <!-- Undo / Redo -->
+                        <div class="toolbar-group">
+                            <button onclick="document.execCommand('undo', false, null)" title="Отменить (Ctrl+Z)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M3 10h10a5 5 0 0 1 0 10H9" />
+                                    <polyline points="7 6 3 10 7 14" />
+                                </svg>
+                            </button>
+                            <button onclick="document.execCommand('redo', false, null)" title="Повторить (Ctrl+Y)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 10H11a5 5 0 0 0 0 10h4" />
+                                    <polyline points="17 6 21 10 17 14" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="toolbar-groupDivider"></div>
+                        <!-- Heading -->
+                        <div class="toolbar-group">
+                            <select id="editor-heading-select" title="Стиль абзаца" class="toolbar-select">
+                                <option value="">Обычный</option>
+                                <option value="H1">Заголовок 1</option>
+                                <option value="H2">Заголовок 2</option>
+                                <option value="H3">Заголовок 3</option>
+                                <option value="H4">Заголовок 4</option>
+                                <option value="H5">Заголовок 5</option>
+                                <option value="H6">Заголовок 6</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-groupDivider"></div>
+                        <!-- Text style -->
+                        <div class="toolbar-group">
+                            <button data-command="bold" onclick="document.execCommand('bold', false, null)"
+                                title="Жирный (Ctrl+B)"><b>B</b></button>
+                            <button data-command="italic" onclick="document.execCommand('italic', false, null)"
+                                title="Курсив (Ctrl+I)"><i>I</i></button>
+                            <button data-command="underline" onclick="document.execCommand('underline', false, null)"
+                                title="Подчёркнутый (Ctrl+U)"><u>U</u></button>
+                            <button data-command="strikeThrough"
+                                onclick="document.execCommand('strikeThrough', false, null)"
+                                title="Зачёркнутый"><s>S</s></button>
+                            <button data-command="subscript" onclick="document.execCommand('subscript', false, null)"
+                                title="Нижний индекс">X<sub>2</sub></button>
+                            <button data-command="superscript"
+                                onclick="document.execCommand('superscript', false, null)"
+                                title="Верхний индекс">X<sup>2</sup></button>
+                        </div>
+                        <div class="toolbar-groupDivider"></div>
+                        <!-- Font size & color -->
+                        <div class="toolbar-group">
+                            <select id="editor-font-size-select" title="Размер шрифта" class="toolbar-select">
+                                <option value="1">12px</option>
+                                <option value="2">14px</option>
+                                <option value="3">16px</option>
+                                <option value="4" selected>18px</option>
+                                <option value="5">24px</option>
+                                <option value="6">32px</option>
+                                <option value="7">48px</option>
+                            </select>
+                            <label class="toolbar-color-wrapper" title="Цвет текста">
+                                <span class="toolbar-color-icon"
+                                    style="border-bottom: 3px solid var(--accent-blue);">A</span>
+                                <input type="color" id="toolbar-text-color" value="#e6edf3" class="toolbar-color-input">
+                            </label>
+                            <label class="toolbar-color-wrapper" title="Цвет выделения">
+                                <span class="toolbar-color-icon toolbar-highlight-icon">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                    </svg>
+                                </span>
+                                <input type="color" id="toolbar-highlight-color" value="#1c1f26"
+                                    class="toolbar-color-input">
+                            </label>
+                        </div>
+                        <div class="toolbar-groupDivider"></div>
+                        <!-- Alignment -->
+                        <div class="toolbar-group">
+                            <button data-command="justifyLeft"
+                                onclick="document.execCommand('justifyLeft', false, null)" title="По левому краю">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M17 10H3M21 6H3M21 14H3M17 18H3" />
+                                </svg>
+                            </button>
+                            <button data-command="justifyCenter"
+                                onclick="document.execCommand('justifyCenter', false, null)" title="По центру">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M18 10H6M21 6H3M21 14H3M18 18H6" />
+                                </svg>
+                            </button>
+                            <button data-command="justifyRight"
+                                onclick="document.execCommand('justifyRight', false, null)" title="По правому краю">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 10H7M21 6H3M21 14H3M21 18H7" />
+                                </svg>
+                            </button>
+                            <button data-command="justifyFull"
+                                onclick="document.execCommand('justifyFull', false, null)" title="По ширине">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 10H3M21 6H3M21 14H3M21 18H3" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="toolbar-groupDivider"></div>
+                        <!-- Lists & Indent -->
+                        <div class="toolbar-group">
+                            <button data-command="insertUnorderedList"
+                                onclick="document.execCommand('insertUnorderedList', false, null)"
+                                title="Маркированный список">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="8" y1="6" x2="21" y2="6" />
+                                    <line x1="8" y1="12" x2="21" y2="12" />
+                                    <line x1="8" y1="18" x2="21" y2="18" />
+                                    <circle cx="4" cy="6" r="1" fill="currentColor" />
+                                    <circle cx="4" cy="12" r="1" fill="currentColor" />
+                                    <circle cx="4" cy="18" r="1" fill="currentColor" />
+                                </svg>
+                            </button>
+                            <button data-command="insertOrderedList"
+                                onclick="document.execCommand('insertOrderedList', false, null)"
+                                title="Нумерованный список">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="10" y1="6" x2="21" y2="6" />
+                                    <line x1="10" y1="12" x2="21" y2="12" />
+                                    <line x1="10" y1="18" x2="21" y2="18" />
+                                    <path d="M4 6h1v4" />
+                                    <path d="M4 10h2" />
+                                    <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" />
+                                </svg>
+                            </button>
+                            <button data-command="indent" onclick="document.execCommand('indent', false, null)"
+                                title="Увеличить отступ">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 6H11M21 12H11M21 18H11" />
+                                    <polyline points="3 8 7 12 3 16" />
+                                </svg>
+                            </button>
+                            <button onclick="document.execCommand('outdent', false, null)" title="Уменьшить отступ">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 6H11M21 12H11M21 18H11" />
+                                    <polyline points="7 8 3 12 7 16" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="toolbar-groupDivider"></div>
+                        <!-- Insert -->
+                        <div class="toolbar-group">
+                            <button onclick="document.execCommand('insertHorizontalRule', false, null)"
+                                title="Разделитель (HR)">HR</button>
+                            <button id="toolbar-table-btn" title="Вставить таблицу">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <line x1="3" y1="9" x2="21" y2="9" />
+                                    <line x1="3" y1="15" x2="21" y2="15" />
+                                    <line x1="9" y1="3" x2="9" y2="21" />
+                                    <line x1="15" y1="3" x2="15" y2="21" />
+                                </svg>
+                            </button>
+                            <button id="toolbar-checklist-btn" title="Список задач">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <path d="m9 12 2 2 4-4" />
+                                </svg>
+                            </button>
+                            <button id="toolbar-footnote-btn" title="Вставить сноску">fn</button>
+                        </div>
+                        <div class="toolbar-groupDivider"></div>
+                        <!-- Image & Clear -->
+                        <div class="toolbar-group">
+                            <button id="toolbar-image-btn" title="Вставить изображение">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                            </button>
+                            <input type="file" id="media-upload-input" class="hidden" accept="image/*,video/*">
+                            <button onclick="document.execCommand('removeFormat', false, null)"
+                                title="Очистить форматирование">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M17 10L3 10M12 4l-2 16" />
+                                    <line x1="18" y1="4" x2="22" y2="20" />
+                                    <line x1="14" y1="12" x2="26" y2="12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <!-- Page format -->
+                        <div class="toolbar-groupDivider"></div>
+                        <div class="toolbar-group">
+                            <select id="editor-page-format-select" title="Формат страницы" class="toolbar-select">
+                                <option value="format-a5">A5</option>
+                                <option value="format-a4">A4</option>
+                                <option value="format-a3">A3</option>
+                                <option value="format-a2">A2</option>
+                                <option value="format-free" selected>Свободный</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="document-viewport">
+                        <div id="document-canvas">
+                            <div class="editor-header">
+                                <div class="editor-path">
+                                    <button id="task-status-toggle" class="status-checkbox"
+                                        title="Отметить как выполнено">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="3">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    </button>
+                                    <span id="task-category-label">Категория</span>
+                                </div>
+                                <div class="editor-actions">
+                                </div>
+                            </div>
+
+                            <div id="task-title-input" class="editor-title" contenteditable="true"
+                                placeholder="Название задачи"></div>
+                            <div id="task-content-editor" class="rich-editor" contenteditable="true"
+                                placeholder="Начните писать здесь... или перетащите файл."></div>
+                            <div id="task-media-area"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dashboard-view" class="dashboard">
+                    <div class="dashboard-header">
+                        <h1>Все задачи</h1>
+                        <p id="dashboard-stats"></p>
+                    </div>
+                    <div id="all-tasks-list" class="dashboard-tasks"></div>
+                </div>
+
+                <div id="empty-workspace" class="empty-state hidden">
+                    <div class="empty-icon">🌱</div>
+                    <h2>Ваш разум чист</h2>
+                    <p>Создайте категорию или задачу, чтобы начать.</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- UI Components / Templates (Hidden) -->
+    <div id="modal-container" class="hidden">
+        <div class="modal">
+            <h3 id="modal-title">Категория</h3>
+            <input type="text" id="modal-input" placeholder="Введите название...">
+            <div class="modal-buttons">
+                <button id="modal-cancel">Отмена</button>
+                <button id="modal-confirm" class="primary-btn">Ок</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/js/store.js"></script>
+    <script src="src/js/app.js"></script>
+</body>
+
+</html>

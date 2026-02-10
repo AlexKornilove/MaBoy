@@ -1,0 +1,51 @@
+{
+  "tasks": [
+    {
+      "id": "1770713485324",
+      "title": "<font color=\"#ff2b95\" size=\"7\">Тест</font>",
+      "content": "\n            \n            <p>\n            </p>\n            <p align=\"left\"><font size=\"4\">мчпсчпчса&nbsp;павпав павпав</font></p><p>\n            </p>\n            <p><br></p>\n        <p>\n            </p>\n            <p><br></p>\n        <p><br></p>",
+      "status": "todo",
+      "categoryId": "default",
+      "order": 0,
+      "media": [],
+      "createdAt": "2026-02-10T08:51:25.324Z",
+      "updatedAt": "2026-02-10T10:19:48.095Z",
+      "pageFormat": "format-free"
+    }
+  ],
+  "projects": [],
+  "contexts": [],
+  "settings": {
+    "currentMode": "list",
+    "currentView": "today",
+    "editorFontSize": "small",
+    "uiFontSize": "large"
+  },
+  "categories": [
+    {
+      "id": "1770699023216",
+      "name": "На неделю",
+      "collapsed": false,
+      "order": 1
+    },
+    {
+      "id": "1770699031144",
+      "name": "На месяц",
+      "collapsed": false,
+      "order": 2
+    },
+    {
+      "id": "system-completed",
+      "name": "Выполненные",
+      "collapsed": false,
+      "isSystem": true,
+      "order": 3
+    },
+    {
+      "id": "1770713510175",
+      "name": "Сегодня",
+      "collapsed": false,
+      "order": 0
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+/* Table Controls Toolbar */
+.table-controls-toolbar {
+    position: absolute;
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 4px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, top 0.2s, left 0.2s;
+}
+
+.table-controls-toolbar.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Row controls: bottom-left */
+.row-controls {
+    flex-direction: row;
+}
+
+/* Col controls: top-right - vertical orientation */
+.col-controls {
+    flex-direction: column;
+}
+
+.table-control-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.table-control-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.table-control-btn.danger:hover {
+    color: var(--accent-red);
+    background: rgba(255, 107, 107, 0.1);
+}
+
+/* HR Styles for selection */
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1.5rem 0;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+hr:focus,
+hr.focused {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-blue);
+}

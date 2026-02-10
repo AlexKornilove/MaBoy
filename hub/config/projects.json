@@ -26,5 +26,14 @@
     "cwd": "../ScheduleBot",
     "color": "#27ae60",
     "type": "bot"
+  },
+  {
+    "id": "tasks-manager",
+    "name": "Tasks Manager",
+    "description": "Менеджер «Живых задач» — инструмент для мышления.",
+    "url": "http://localhost:8081",
+    "startCommand": "node server.js",
+    "cwd": "../TasksManager",
+    "color": "#38bdf8"
   }
 ]

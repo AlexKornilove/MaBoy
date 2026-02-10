@@ -1,0 +1,5 @@
+# This directory is a Syncthing folder marker.
+# Do not delete.
+
+folderID: 26cam-qudty
+created: 2026-02-10T16:44:28+07:00
