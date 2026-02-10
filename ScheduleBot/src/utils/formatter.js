@@ -13,43 +13,40 @@ const { emoji } = settings.messages;
  * @returns {string} Formatted lesson string
  */
 export function formatLesson(lesson) {
-    const parts = [];
-
-    // Time
-    if (lesson.time) {
-        parts.push(`${emoji.clock} <b>${lesson.time}</b>`);
-    }
-
     if (lesson.isEmpty) {
-        parts.push(`<i>Занятий нет</i>`);
-        return parts.join('\n');
+        return `${emoji.clock} <b>${lesson.time}</b>\n<i>Занятий нет</i>`;
     }
 
-    // Subject with type
-    if (lesson.subject) {
-        let subjectLine = `${emoji.book} ${lesson.subject}`;
-        if (lesson.type) {
-            subjectLine += ` <i>(${lesson.type})</i>`;
-        }
-        parts.push(subjectLine);
+    const lines = [];
+
+    // 1. Time
+    if (lesson.time) {
+        lines.push(`${emoji.clock} <b>${lesson.time}</b>`);
     }
 
-    // Teacher
+    // 2. Subject + Type
+    let subjectLine = `${emoji.book} ${lesson.subject}`;
+    if (lesson.type) {
+        subjectLine += ` <i>(${lesson.type})</i>`;
+    }
+    lines.push(subjectLine);
+
+    // 3. Teacher
     if (lesson.teacher) {
-        parts.push(`${emoji.teacher} ${lesson.teacher}`);
+        lines.push(`${emoji.teacher} ${lesson.teacher}`);
     }
 
-    // Room
+    // 4. Room
     if (lesson.room) {
-        parts.push(`${emoji.room} ${lesson.room}`);
+        lines.push(`${emoji.room} ${lesson.room}`);
     }
 
-    // Weeks - always show if available
+    // 5. Weeks
     if (lesson.weeks) {
-        parts.push(`📌 ${lesson.weeks}`);
+        lines.push(`📌 ${lesson.weeks}`);
     }
 
-    return parts.join('\n');
+    return lines.join('\n');
 }
 
 /**

@@ -35,8 +35,8 @@ function parseType(typeCode) {
     if (!typeCode) return '';
     const code = typeCode.toLowerCase();
     if (code.includes('л.') || code === 'л') return 'лекция';
-    if (code.includes('п.з') || code.includes('пз')) return 'практика';
-    if (code.includes('лаб')) return 'лабораторная';
+    if (code.includes('п.з') || code.includes('пз')) return 'практическое занятие';
+    if (code.includes('лаб')) return 'лабораторная работа';
     if (code.includes('сем')) return 'семинар';
     if (code.includes('конс')) return 'консультация';
     if (code.includes('экз')) return 'экзамен';
@@ -100,16 +100,24 @@ function normalizeWeeks(weeksSet) {
         return `${sorted[0]}–${sorted[sorted.length - 1]} нед.`;
     }
 
-    // Checking for single range with small gaps allowed? 
-    // The requirement says "23,25,27,29,31,33,35" -> "23-35".
-    // Let's just take start and end if it looks somewhat regular?
-    // Safety: only combine if they are "close enough" or if the list is long
     if (sorted.length > 3) {
         return `${sorted[0]}–${sorted[sorted.length - 1]} нед.`;
     }
 
     // Fallback: join with commas
     return sorted.join(',') + ' нед.';
+}
+
+/**
+ * Format typeInfo into a detailed weeks string
+ * e.g., "л.: 23–32 нед. п.з.: 33–38 нед."
+ */
+function formatDetailedWeeks(typeInfo) {
+    if (!typeInfo || typeInfo.length === 0) return '';
+    return typeInfo.map(info => {
+        const typePrefix = info.type === 'лекция' ? 'л.' : (info.type === 'практическое занятие' ? 'п.з.' : info.type);
+        return `${typePrefix}: ${normalizeWeeks(info.weeks)}`;
+    }).join(' ');
 }
 
 /**
@@ -210,17 +218,37 @@ function parseLessonFromCell($, $cell) {
     const parsedLessons = [];
 
     for (const part of parts) {
-        // Create a temporary cheerio object for the part
-        // We wrap in a div to ensure it parses correctly as snippet
         const $part = cheerio.load(`<div>${part}</div>`, null, false);
         const text = $part.text().trim();
 
         if (!text || text === '-' || text === '—' || text.length < 5) continue;
 
-        // Extract teacher and room
-        const $teacherLink = $part('a[href*="teacher"]');
-        const teacher = $teacherLink.first().text().trim();
+        // Extract multiple teachers and their titles
+        const teachers = [];
+        const teacherNodes = []; // Keep track of what to remove from subject
 
+        $part('a[href*="teacher"]').each((i, el) => {
+            const $link = $part(el);
+            const name = $link.text().trim();
+
+            // Look for titles before the link
+            // We look at the preceding text nodes in the raw HTML part
+            const prevText = el.previousSibling && el.previousSibling.type === 'text'
+                ? el.previousSibling.data
+                : '';
+
+            const titlesRegex = /(?:доц\.?|проф\.?|ассист\.?|ст\.\s*препод\.?|ст\.\s*преп\.?|преп\.?|преподаватель)/gi;
+            const titleMatch = prevText.match(titlesRegex);
+            const title = titleMatch ? titleMatch[titleMatch.length - 1].trim() : '';
+
+            const fullTeacher = title ? `${title} ${name}` : name;
+            teachers.push(fullTeacher);
+
+            teacherNodes.push(name);
+            if (title) teacherNodes.push(title);
+        });
+
+        // Extract room
         const $roomLink = $part('a[href*="room"]');
         let room = $roomLink.first().text().trim();
         if (!room) {
@@ -231,11 +259,9 @@ function parseLessonFromCell($, $cell) {
         // Parse types and weeks
         const typeInfo = parseTypesAndWeeks(text);
 
-        // Fallback parsing
-        let type = '';
+        // Fallback parsing for weeks if typeInfo is empty
         let weeksDisplay = '';
         let activeWeeks = new Set();
-
         if (typeInfo.length === 0) {
             const weeksMatch = text.match(/(\d+(?:[-–]\d+)?(?:,\s*\d+(?:[-–]\d+)?)*)\s*нед/);
             if (weeksMatch) {
@@ -247,20 +273,39 @@ function parseLessonFromCell($, $cell) {
 
         // Clean subject
         let subject = text;
-        if (teacher) subject = subject.replace(teacher, '');
-        if (room) subject = subject.replace(room, '');
+
+        // Multi-pass cleaning to ensure titles and names are gone
+        teacherNodes.forEach(t => {
+            const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(escaped, 'gi');
+            subject = subject.replace(re, '');
+        });
+
+        // Remove room
+        if (room) {
+            subject = subject.replace(room, '');
+            // Also remove the "а." or "ауд." prefix that might be left
+            subject = subject.replace(/(?:а\.|ауд\.?|ауд)\s*/gi, '');
+        }
+
+        // Remove weeks and types in parens
         subject = subject.replace(/\([^)]*\)/g, '');
-        subject = subject.replace(/\*/g, '').replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '');
+
+        // Remove artifacts and clean whitespace
+        subject = subject.replace(/\*/g, '')
+            .replace(/\s+/g, ' ')
+            .replace(/^[\s,;.-]+|[\s,;.-]+$/g, '')
+            .trim();
 
         parsedLessons.push({
             subject,
-            teacher,
+            teacher: teachers.join(', '),
             room,
             typeInfo: typeInfo.length > 0 ? typeInfo : null,
-            type,
+            type: '', // Will be resolved later
             weeks: weeksDisplay,
             activeWeeks,
-            rawText: text // Keep for merging if needed
+            rawText: text
         });
     }
 
@@ -316,76 +361,54 @@ function parseLessonFromCell($, $cell) {
 function resolveLessonDetails(lesson, currentWeek) {
     if (!lesson) return null;
 
-    // If filtering is disabled (currentWeek === 0)
+    const allWeeks = new Set();
+    if (lesson.typeInfo) {
+        lesson.typeInfo.forEach(t => t.weeks.forEach(w => allWeeks.add(w)));
+    } else if (lesson.activeWeeks) {
+        lesson.activeWeeks.forEach(w => allWeeks.add(w));
+    }
+
+    const detailedWeeks = lesson.typeInfo ? formatDetailedWeeks(lesson.typeInfo) : normalizeWeeks(allWeeks);
+
     if (currentWeek === 0) {
-        // Check if complex type info exists
-        if (lesson.typeInfo && lesson.typeInfo.length > 0) {
-            // Merge all types/weeks? 
-            // Or just pick the first one but with ALL active weeks?
-            // "Remove division" -> Show combined view?
-
-            // To be simple: use the rawWeeks string if available, or merge all sets
-            const allWeeks = new Set();
-            lesson.typeInfo.forEach(t => t.weeks.forEach(w => allWeeks.add(w)));
-
-            // If multiple types, join them? "L, P"
-            const types = [...new Set(lesson.typeInfo.map(t => t.type))].join(', ');
-
-            return {
-                ...lesson,
-                type: types,
-                weeks: normalizeWeeks(allWeeks),
-                activeWeeks: allWeeks,
-                weekRange: allWeeks.size > 0 ? [Math.min(...allWeeks), Math.max(...allWeeks)] : []
-            };
-        }
-
-        // Simple case - just return as is (weeks already parsed)
-        if (lesson.activeWeeks && lesson.activeWeeks.size > 0) {
-            const weeksArr = Array.from(lesson.activeWeeks);
-            return {
-                ...lesson,
-                weekRange: [Math.min(...weeksArr), Math.max(...weeksArr)]
-            };
-        }
-        return lesson;
-    }
-
-    // IF Filtering is Enabled (legacy logic, or if we want to highlight active)
-    // ... (rest of function for currentWeek > 0, if needed)
-
-    // Since we call it with 0 in selectLessons, the above block handles it.
-    // The code below is kept if we ever re-enable filtering.
-
-    if (lesson.typeInfo && lesson.typeInfo.length > 0) {
-        const activeType = lesson.typeInfo.find(info => info.weeks.has(currentWeek));
-        if (activeType) {
-            return {
-                ...lesson,
-                type: activeType.type,
-                weeks: normalizeWeeks(activeType.weeks),
-                weekRange: [Math.min(...activeType.weeks), Math.max(...activeType.weeks)]
-            };
-        }
-        // Fallback
-        const weeksArr = Array.from(lesson.activeWeeks || []);
-        if (weeksArr.length) {
-            return {
-                ...lesson,
-                weekRange: [Math.min(...weeksArr), Math.max(...weeksArr)]
-            };
-        }
-    }
-
-    if (lesson.activeWeeks && lesson.activeWeeks.size > 0) {
-        const weeksArr = Array.from(lesson.activeWeeks);
+        const types = lesson.typeInfo ? [...new Set(lesson.typeInfo.map(t => t.type))].join(', ') : '';
         return {
             ...lesson,
-            weekRange: [Math.min(...weeksArr), Math.max(...weeksArr)]
+            type: types,
+            weeks: detailedWeeks,
+            activeWeeks: allWeeks,
+            weekRange: allWeeks.size > 0 ? [Math.min(...allWeeks), Math.max(...allWeeks)] : []
         };
     }
 
-    return lesson;
+    // Resolve specific type for current week
+    let activeType = '';
+    if (lesson.typeInfo) {
+        const found = lesson.typeInfo.find(info => info.weeks.has(currentWeek));
+        if (found) {
+            activeType = found.type;
+        } else {
+            // Pick nearest type if current week not active
+            let minGap = Infinity;
+            lesson.typeInfo.forEach(info => {
+                info.weeks.forEach(w => {
+                    const gap = Math.abs(currentWeek - w);
+                    if (gap < minGap) {
+                        minGap = gap;
+                        activeType = info.type;
+                    }
+                });
+            });
+        }
+    }
+
+    return {
+        ...lesson,
+        type: activeType,
+        weeks: detailedWeeks,
+        activeWeeks: allWeeks,
+        weekRange: allWeeks.size > 0 ? [Math.min(...allWeeks), Math.max(...allWeeks)] : []
+    };
 }
 
 /**
@@ -509,12 +532,26 @@ export async function fetchSchedule(groupId, groupCode = null) {
                 // Row 1: Day, Time, Num, Denom
                 const timeText = cells.eq(1).text().trim();
                 const colspan = parseInt(cells.eq(2).attr('colspan') || '1');
-                const numeratorLessons = parseLessonFromCell($, cells.eq(2));
-                const denominatorLessons = colspan === 2 ? numeratorLessons : parseLessonFromCell($, cells.eq(3));
 
-                const lessonsToAdd = selectLessons(numeratorLessons, denominatorLessons, currentWeek);
+                const isNumerator = currentWeek === 0 || currentWeek % 2 !== 0; // Odd is Numerator
+                let numeratorLessons = [];
+                let denominatorLessons = [];
 
-                // Sort lessons by start week (from smaller to larger)
+                if (colspan === 2) {
+                    numeratorLessons = parseLessonFromCell($, cells.eq(2));
+                    denominatorLessons = numeratorLessons;
+                } else {
+                    numeratorLessons = parseLessonFromCell($, cells.eq(2));
+                    denominatorLessons = parseLessonFromCell($, cells.eq(3));
+                }
+
+                const lessonsToAdd = selectLessons(
+                    isNumerator ? numeratorLessons : [],
+                    isNumerator ? [] : denominatorLessons,
+                    currentWeek
+                );
+
+                // Sort lessons by start week
                 lessonsToAdd.sort((a, b) => {
                     const startA = a.weekRange ? a.weekRange[0] : 0;
                     const startB = b.weekRange ? b.weekRange[0] : 0;
@@ -534,25 +571,27 @@ export async function fetchSchedule(groupId, groupCode = null) {
                 }
 
             } else if (currentDay && cells.length >= 2) { // Lesson row
-                // Row N: Time, Num, Denom OR Time, Shared
-                // But wait, column offsets differ if it's not a day row?
-                // Usually: Time (0), Num (1), Denom (2)
                 const timeText = cells.eq(0).text().trim();
-
-                // Determine column offsets
-                let numCol = 1;
-                let denomCol = 2;
-
-                const cell1 = cells.eq(numCol);
+                const cell1 = cells.eq(1);
                 const colspan = parseInt(cell1.attr('colspan') || '1');
 
-                let numeratorCell = cell1;
-                let denominatorCell = colspan === 2 ? cell1 : cells.eq(denomCol);
+                const isNumerator = currentWeek === 0 || currentWeek % 2 !== 0;
+                let numeratorLessons = [];
+                let denominatorLessons = [];
 
-                const numeratorLessons = parseLessonFromCell($, numeratorCell);
-                const denominatorLessons = colspan === 2 ? numeratorLessons : parseLessonFromCell($, denominatorCell);
+                if (colspan === 2) {
+                    numeratorLessons = parseLessonFromCell($, cell1);
+                    denominatorLessons = numeratorLessons;
+                } else {
+                    numeratorLessons = parseLessonFromCell($, cell1);
+                    denominatorLessons = parseLessonFromCell($, cells.eq(2));
+                }
 
-                const lessonsToAdd = selectLessons(numeratorLessons, denominatorLessons, currentWeek);
+                const lessonsToAdd = selectLessons(
+                    isNumerator ? numeratorLessons : [],
+                    isNumerator ? [] : denominatorLessons,
+                    currentWeek
+                );
 
                 // Sort lessons by start week
                 lessonsToAdd.sort((a, b) => {
